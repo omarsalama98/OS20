@@ -5,3 +5,5 @@ def preProcess(arr):
         arr[i] = arr[i] - diff if 0 <= arr[i] % 5 <= 2 else arr[i] + 5 - diff
 
     print(arr)
+
+# TODO: Eb2a 5alleehom talatat
