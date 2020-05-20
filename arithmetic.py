@@ -3,7 +3,7 @@ import numpy as np
 
 def encodeArithmetic(arr, blockSize):
     while arr.size % blockSize != 0:
-        arr = np.append(arr, 0)
+        arr = np.append(arr, 3)
 
     unique, counts = np.unique(arr, return_counts=True)
     lengthDict = dict(zip(unique, counts))
@@ -40,18 +40,17 @@ def encodeArithmetic(arr, blockSize):
     encodedArr[k] = start + length / 2
 
     np.save("Encoded Image", encodedArr)
-    print(encodedArr)
     return encodedArr, probabilitiesArr
 
 
 def decodeArithmetic(encodedArr, probabilitiesArr, blockSize, imgSize):
+    imgSize += imgSize % blockSize
     decodedArr = np.zeros(imgSize, int)
     lengthDict = dict()
     startDict = dict()
     for i in range(0, probabilitiesArr.size):
         if probabilitiesArr[i] != 0:
             lengthDict[i] = probabilitiesArr[i]
-
     accLength = 0
     for i in lengthDict:
         startDict[i] = accLength
