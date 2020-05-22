@@ -1,4 +1,5 @@
-from Averaging import encodeAvg, decodeAvg
+from Averaging import encodeAvg, decodeAvg, encodeAvg2, decodeAvg2
+from LZ77 import encodeLZ, decodeLZ
 from arithmetic import decodeArithmetic, encodeArithmetic
 from dct import applyDCT, applyIDCT, removeZerosAfterDCT, addZerosForIDCT
 from preProcessing import preProcess
@@ -16,16 +17,18 @@ print(rows*cols)
   #      arr = np.append(arr, img[i, j])
 #arr = np.delete(arr, 0)
 #preProcess(arr)
-#encodedArr, possibilitiesArr = encodeArithmetic(arr, 4)
-#arr = decodeArithmetic(encodedArr, possibilitiesArr, 4, arr.size)
 
-avgArr = encodeAvg(img)
+avgArr = encodeAvg2(img)
 preProcess(avgArr)
 np.save("Encoded Image.npy", avgArr)
+#slidingWindSize = int(input("Enter Sliding Window Size(Not less than 5): "))
+#lookUpBuffSize = int(input("Enter Look-Up Buffer Size(Not greater than Sliding Window): "))
+#codesValuesArray, codesMatchingArr = encodeLZ(avgArr, slidingWindSize, lookUpBuffSize)
 
+#avgArr = decodeLZ(avgArr[0: slidingWindSize - lookUpBuffSize: 1], codesValuesArray, codesMatchingArr, slidingWindSize, lookUpBuffSize)
 zerosImage = np.zeros_like(img)
-decodeAvg(zerosImage, avgArr)
-img = zerosImage
+decodeAvg2(zerosImage, avgArr)
+imag = zerosImage
 
 Gaussian = cv2.GaussianBlur(img, (3, 3), 0)
 cv2.imshow('Gaussian Blurring', Gaussian)
@@ -36,13 +39,13 @@ cv2.imshow('Gaussian Blurring', Gaussian)
   #      img[i, j] = arr[k]
    #     k += 1
 
-arr = applyDCT(img)
-arr = removeZerosAfterDCT(arr, rows, cols)
-print(arr, arr.size)
+#arr = applyDCT(img)
+#arr = removeZerosAfterDCT(arr, rows, cols)
+#print(arr, arr.size)
 
-zerosImage = np.zeros_like(img)
-arr = addZerosForIDCT(arr, img)
-img = applyIDCT(arr, zerosImage)
-img = cv2.GaussianBlur(img, (3, 3), 0)
-cv2.imshow('Imagaya', img)
+#zerosImage = np.zeros_like(img)
+#arr = addZerosForIDCT(arr, img)
+#img = applyIDCT(arr, zerosImage)
+#img = cv2.GaussianBlur(img, (3, 3), 0)
+#cv2.imshow('Imagaya', img)
 cv2.waitKey(0)
