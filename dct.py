@@ -1,7 +1,7 @@
 from scipy.fftpack import dct, idct
 import numpy as np
 
-blockDim = 8
+blockDim = 4
 bl_h = blockDim
 bl_w = blockDim
 
@@ -13,7 +13,7 @@ quantizationMatrix = [[16, 11, 10, 16, 24, 40, 51, 61],
                       [24, 35, 55, 64, 81, 104, 103, 92],
                       [49, 64, 78, 77, 103, 121, 120, 101],
                       [72, 92, 95, 98, 112, 100, 103, 99]]
-# quantizationMatrix = np.ones((8, 8))
+#quantizationMatrix = np.ones((8, 8))
 
 
 # implement 2D DCT
@@ -28,7 +28,7 @@ def idct2(a):
 
 def applyDCT(img):
     img = np.uint8(img)
-    block_img = np.zeros(img.shape, dtype=np.int16)
+    block_img = np.zeros(img.shape, dtype=np.int8)
     im_h, im_w = img.shape[:2]
     for i in range(im_h):
         for j in range(im_w):
@@ -36,7 +36,7 @@ def applyDCT(img):
 
     for row in np.arange(im_h - bl_h + 1, step=bl_h):
         for col in np.arange(im_w - bl_w + 1, step=bl_w):
-            block_img[row:row + bl_h, col:col + bl_w] = dct2(img[row:row + bl_h, col:col + bl_w])
+            block_img[row:row + bl_h, col:col + bl_w] = dct2(img[row:row + bl_h, col:col + bl_w]) / quantizationMatrix[0: 8][0: 8]
 
     return block_img
 
@@ -45,7 +45,7 @@ def applyIDCT(arr, img):
     im_h, im_w = img.shape[:2]
     for row in np.arange(im_h - bl_h + 1, step=bl_h):
         for col in np.arange(im_w - bl_w + 1, step=bl_w):
-            img[row:row + bl_h, col:col + bl_w] = idct2(arr[row:row + bl_h, col:col + bl_w])
+            img[row:row + bl_h, col:col + bl_w] = idct2(arr[row:row + bl_h, col:col + bl_w] * quantizationMatrix[0: 8][0: 8])
 
     for i in range(im_h):
         for j in range(im_w):
@@ -54,7 +54,7 @@ def applyIDCT(arr, img):
 
 
 def removeZerosAfterDCT(arr, im_h, im_w):
-    encodedArr = np.zeros(1, np.int16)
+    encodedArr = np.zeros(1, np.int8)
     encodedArr = np.delete(encodedArr, 0)
     for row in np.arange(im_h - bl_h + 1, step=bl_h):
         for col in np.arange(im_w - bl_w + 1, step=bl_w):
