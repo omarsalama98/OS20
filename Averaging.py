@@ -175,7 +175,7 @@ def encodeHalf(img):
         j = 0
         while j < cols:
             encodedArr = np.append(encodedArr, img[i, j])
-            j += 1 if i % 3 == 0 else 3
+            j += 1 if i % 3 == 0 else 2
         i += 1
     return encodedArr
 
@@ -189,14 +189,14 @@ def decodeHalf(encodedArr, rows, cols):
         j = 0
         while j < cols:
             zerosImage[i, j] = encodedArr[k]
-            j += 1 if i % 3 == 0 else 3
+            j += 1 if i % 3 == 0 else 2
             k += 1
         i += 1
     for i in range(rows):
         if i % 3 == 0:
             continue
         for j in range(cols):
-            if j % 3 == 0:
+            if j % 2 == 0:
                 continue
             sum = 0
             num = 0

@@ -1,13 +1,18 @@
 import cv2
 import numpy as np
 
-from Averaging import encodeAverage, decodeAverage
+from Averaging import encodeAverage, decodeAverage, encodeHalf, decodeHalf
 from Huffman import encodeHuff, decodeHuff
 from PreProcessing import preProcess
 
 img = cv2.imread('bika.png', 0)
 rows, cols = img.shape
 print(rows * cols)
+encodedArr = encodeHalf(img)
+preProcess(encodedArr)
+print(encodedArr.size)
+image = decodeHalf(encodedArr, rows, cols)
+cv2.imshow('img', image)
 avgArr, lSize, rSize, tSize, bSize = encodeAverage(img, 4, 2, 6)
 preProcess(avgArr)
 print(avgArr.size)
