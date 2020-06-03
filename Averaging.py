@@ -1,6 +1,7 @@
-import numpy as np
 import math
+
 import cv2
+import numpy as np
 
 
 def encodeAverage(img, low_res_bl, high_res_bl, ratio):
@@ -35,7 +36,9 @@ def encodeAverage(img, low_res_bl, high_res_bl, ratio):
         avgArrTop = encodeAvgEvenBlock(img[0: upBound, leftBound: rightBound], low_res_bl_w, low_res_bl_h)
         avgArrBottom = encodeAvgEvenBlock(img[lowBound: rows, leftBound: rightBound], low_res_bl_w, low_res_bl_h)
 
-    if high_res_bl_w == 1:
+    if high_res_bl == 1:
+        avgArrCenter = img[upBound: lowBound, leftBound: rightBound].flatten()
+    elif high_res_bl == 2:
         avgArrCenter = encodeAvgTwos(img[upBound: lowBound, leftBound: rightBound])
     elif low_res_bl % 2 != 0:
         avgArrCenter = encodeAvgOddBlock(img[upBound: lowBound, leftBound: rightBound], high_res_bl_w, high_res_bl_h)
@@ -110,7 +113,7 @@ def decodeAverage(avgArr, avgArrLeftSize, avgArrRightSize, avgArrTopSize, avgArr
     arrBottom = np.reshape(arrBottom, ((rows - lowBound), -1))
 
     arrCenter = np.zeros((lowBound - upBound) * (rightBound - leftBound), np.uint8)
-    if high_res_bl_w != 1:
+    if high_res_bl > 2:
         arrCenter = np.reshape(arrCenter, ((lowBound - upBound), -1))
 
     if low_res_bl % 2 != 0:
@@ -124,7 +127,11 @@ def decodeAverage(avgArr, avgArrLeftSize, avgArrRightSize, avgArrTopSize, avgArr
         decodeAvgEvenBlock(arrTop, avgArrTop, low_res_bl_w, low_res_bl_h)
         decodeAvgEvenBlock(arrBottom, avgArrBottom, low_res_bl_w, low_res_bl_h)
 
-    if high_res_bl_w == 1:
+    if high_res_bl == 1:
+        for i in range(avgArrCenter.size):
+            arrCenter[i] = avgArrCenter[i]
+        arrCenter = np.reshape(arrCenter, ((lowBound - upBound), (rightBound - leftBound)))
+    elif high_res_bl == 2:
         centerRows, centerCols = lowBound - upBound, rightBound - leftBound
         arrCenter = decodeAvgTwos(avgArrCenter, centerRows, centerCols)
     elif low_res_bl % 2 != 0:
@@ -157,6 +164,68 @@ def decodeAverage(avgArr, avgArrLeftSize, avgArrRightSize, avgArrTopSize, avgArr
             img[i + upBound, j + leftBound] = arrCenter[i, j]
 
     return img
+
+
+def encodeHalf(img):
+    rows, cols = img.shape
+    encodedArr = np.array(1, np.uint8)
+    encodedArr = np.delete(encodedArr, 0)
+    i = 0
+    while i < rows:
+        j = 0
+        while j < cols:
+            encodedArr = np.append(encodedArr, img[i, j])
+            j += 1 if i % 3 == 0 else 3
+        i += 1
+    return encodedArr
+
+
+def decodeHalf(encodedArr, rows, cols):
+    zerosImage = np.zeros((rows * cols), dtype=np.uint8)
+    zerosImage = np.reshape(zerosImage, (rows, -1))
+    k = 0
+    i = 0
+    while i < rows:
+        j = 0
+        while j < cols:
+            zerosImage[i, j] = encodedArr[k]
+            j += 1 if i % 3 == 0 else 3
+            k += 1
+        i += 1
+    for i in range(rows):
+        if i % 3 == 0:
+            continue
+        for j in range(cols):
+            if j % 3 == 0:
+                continue
+            sum = 0
+            num = 0
+            if j != cols - 1 and zerosImage[i, j + 1] != 0:
+                sum += zerosImage[i, j + 1] * 3
+                num += 3
+            if zerosImage[i - 1, j] != 0:
+                sum += zerosImage[i - 1, j] * 3
+                num += 3
+            if zerosImage[i, j - 1] != 0:
+                sum += zerosImage[i, j - 1] * 3
+                num += 3
+            if i != rows - 1 and zerosImage[i + 1, j] != 0:
+                sum += zerosImage[i + 1, j] * 3
+                num += 3
+
+            sum += zerosImage[i - 1, j - 1]
+            num += 1
+            if j != cols - 1:
+                sum += zerosImage[i - 1, j + 1]
+                num += 1
+            if i != rows - 1 and zerosImage[i + 1, j - 1] != 0:
+                sum += zerosImage[i + 1, j - 1]
+                num += 1
+            if i != rows - 1 and j != cols - 1 and zerosImage[i + 1, j + 1] != 0:
+                sum += zerosImage[i + 1, j + 1]
+                num += 1
+            zerosImage[i, j] = sum / num
+    return zerosImage
 
 
 def encodeAvgTwos(img):
@@ -282,3 +351,87 @@ def decodeAvgOddBlock(img, myArr, bl_w, bl_h):
                     else:
                         img[row + p, col + k] = myArr[index + 1]
             index += 2
+
+
+def encodeToThird(img):
+    rows, cols = img.shape
+    encodedArr = np.array(1, np.uint8)
+    encodedArr = np.delete(encodedArr, 0)
+    i = rows - 1
+    while i >= 0:
+        j = 0
+        k = i
+        while j < cols and k < rows:
+            encodedArr = np.append(encodedArr, img[k, j])
+            k += 1
+            j += 1
+        i -= 3
+    j = 1
+    while j < cols:
+        i = 0
+        k = j
+        while k < cols and i < rows:
+            encodedArr = np.append(encodedArr, img[i, k])
+            i += 1
+            k += 1
+        j += 3
+
+    return encodedArr
+
+
+def decodeThird(encodedArr, rows, cols):
+    zerosImage = np.zeros((rows * cols), dtype=np.uint8)
+    zerosImage = np.reshape(zerosImage, (rows, -1))
+    i = rows - 1
+    k = 0
+    while i >= 0:
+        w = i
+        j = 0
+        while j < cols and w < rows:
+            zerosImage[w, j] = encodedArr[k]
+            w += 1
+            j += 1
+            k += 1
+        i -= 3
+    j = 1
+    while j < cols:
+        w = j
+        i = 0
+        while w < cols and i < rows:
+            zerosImage[i, w] = encodedArr[k]
+            i += 1
+            w += 1
+            k += 1
+        j += 3
+
+    i = 1
+    while i < rows:
+        j = 0
+        while j < cols - 1:
+            if zerosImage[i, j] == 0 and zerosImage[i - 1, j] != 0 and zerosImage[i, j + 1] != 0:
+                x = int(zerosImage[i - 1, j])
+                x += zerosImage[i, j + 1]
+                x /= 2
+                zerosImage[i, j] = x
+            j += 1
+        i += 1
+
+    for i in range(rows):
+        for j in range(cols):
+            sum = 0
+            num = 0
+            if j != cols - 1 and zerosImage[i, j + 1] != 0:
+                sum += zerosImage[i, j + 1]
+                num += 1
+            if i != 0 and zerosImage[i - 1, j] != 0:
+                sum += zerosImage[i - 1, j]
+                num += 1
+            if j != 0 and zerosImage[i, j - 1] != 0:
+                sum += zerosImage[i, j - 1]
+                num += 1
+            if i != rows - 1 and zerosImage[i + 1, j] != 0:
+                sum += zerosImage[i + 1, j]
+                num += 1
+            zerosImage[i, j] = sum / num
+
+    return zerosImage
