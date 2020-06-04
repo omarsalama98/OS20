@@ -10,7 +10,7 @@ def applyDL(image):
                     help="path to Caffe 'deploy' prototxt file")
     ap.add_argument("-m", "--model", required=True,
                     help="path to Caffe pre-trained model")
-    ap.add_argument("-c", "--confidence", type=float, default=0.8,
+    ap.add_argument("-c", "--confidence", type=float, default=0.05,
                     help="minimum probability to filter weak detections")
     args = vars(ap.parse_args())
 
@@ -61,12 +61,12 @@ def applyDL(image):
     # cv2.imshow("Output", image)
 
     while bestStartX % 10 != 0:
-        bestStartX += 1
+        bestStartX -= 1
     while bestEndX % 10 != 0:
-        bestEndX -= 1
+        bestEndX += 1
     while bestEndY % 10 != 0:
-        bestEndY -= 1
+        bestEndY += 1
     while bestStartY % 10 != 0:
-        bestStartY += 1
+        bestStartY -= 1
 
     return bestStartX, bestStartY, bestEndX, bestEndY
