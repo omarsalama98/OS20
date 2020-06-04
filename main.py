@@ -1,30 +1,27 @@
 import cv2
 import numpy as np
 
-from Averaging import encodeAverage, decodeAverage, encodeHalf, decodeHalf
+from Averaging import encodeAverage, decodeAverage
+from DeepLearning import applyDL
 from Huffman import encodeHuff, decodeHuff
 from PreProcessing import preProcess
 
-img = cv2.imread('bika.png', 0)
-rows, cols = img.shape
+bestStartX, bestStartY, bestEndX, bestEndY = applyDL(cv2.imread('doola.jpg'))
+image = cv2.imread('doola.jpg', 0)
+rows, cols = image.shape
+
 print(rows * cols)
-encodedArr = encodeHalf(img)
-preProcess(encodedArr)
-print(encodedArr.size)
-image = decodeHalf(encodedArr, rows, cols)
-cv2.imshow('img', image)
-avgArr, lSize, rSize, tSize, bSize = encodeAverage(img, 4, 2, 6)
-preProcess(avgArr)
+avgArr, lSize, rSize, tSize, bSize = encodeAverage(image, bestStartX, bestEndX, bestStartY, bestEndY, 1)
+preProcess(avgArr, 3)
 print(avgArr.size)
 encodedArr, myDictionary = encodeHuff(avgArr)
 np.save("Encoded Image.npy", encodedArr)
 np.save("Dictionary.npy", myDictionary)
 
 avgArr = decodeHuff(encodedArr, myDictionary)
-imag = decodeAverage(avgArr, lSize, rSize, tSize, bSize, 4, 2, 6, rows, cols)
+imag = decodeAverage(avgArr, lSize, rSize, tSize, bSize, rows, cols, bestStartX, bestEndX, bestStartY, bestEndY, 1)
 
-Gaussian = cv2.GaussianBlur(imag, (3, 3), 0)
 cv2.imwrite("Decoded Image.png", imag)
 
-cv2.imshow('Gaussian Blurring', np.hstack([img, imag, Gaussian]))
+cv2.imshow('OS20', np.hstack([imag, image]))
 cv2.waitKey(0)

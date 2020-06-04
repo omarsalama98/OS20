@@ -1,49 +1,18 @@
-import math
-
-import cv2
 import numpy as np
 
 
-def encodeAverage(img, low_res_bl, high_res_bl, ratio):
+def encodeAverage(img, leftBound, rightBound, upBound, lowBound, hQ):
     rows, cols = img.shape
-    leftBound = (cols / ratio).__int__()
-    rightBound = (cols - cols / ratio).__int__()
-    upBound = (rows / ratio).__int__()
-    lowBound = (rows - rows / ratio).__int__()
 
-    low_res_bl_w = math.ceil(low_res_bl / 2)
-    high_res_bl_w = math.ceil(high_res_bl / 2)
-    low_res_bl_h = low_res_bl_w if low_res_bl % 2 == 0 else low_res_bl_w + 1
-    high_res_bl_h = high_res_bl_w if high_res_bl % 2 == 0 else high_res_bl_w + 1
+    avgArrLeft = encodeToThird(img[0: rows, 0: leftBound])
+    avgArrRight = encodeToThird(img[0: rows, rightBound: cols])
+    avgArrTop = encodeToThird(img[0: upBound, leftBound: rightBound])
+    avgArrBottom = encodeToThird(img[lowBound: rows, leftBound: rightBound])
 
-    while leftBound % low_res_bl_w != 0:
-        leftBound -= 1
-    while rightBound % low_res_bl_w != 0:
-        rightBound -= 1
-    while upBound % low_res_bl_h != 0:
-        upBound -= 1
-    while lowBound % low_res_bl_h != 0:
-        lowBound -= 1
-
-    if low_res_bl % 2 != 0:
-        avgArrLeft = encodeAvgOddBlock(img[0: rows, 0: leftBound], low_res_bl_w, low_res_bl_h)
-        avgArrRight = encodeAvgOddBlock(img[0: rows, rightBound: cols], low_res_bl_w, low_res_bl_h)
-        avgArrTop = encodeAvgOddBlock(img[0: upBound, leftBound: rightBound], low_res_bl_w, low_res_bl_h)
-        avgArrBottom = encodeAvgOddBlock(img[lowBound: rows, leftBound: rightBound], low_res_bl_w, low_res_bl_h)
+    if hQ:
+        avgArrCenter = (img[upBound: lowBound, leftBound: rightBound]).flatten()
     else:
-        avgArrLeft = encodeAvgEvenBlock(img[0: rows, 0: leftBound], low_res_bl_w, low_res_bl_h)
-        avgArrRight = encodeAvgEvenBlock(img[0: rows, rightBound: cols], low_res_bl_w, low_res_bl_h)
-        avgArrTop = encodeAvgEvenBlock(img[0: upBound, leftBound: rightBound], low_res_bl_w, low_res_bl_h)
-        avgArrBottom = encodeAvgEvenBlock(img[lowBound: rows, leftBound: rightBound], low_res_bl_w, low_res_bl_h)
-
-    if high_res_bl == 1:
-        avgArrCenter = img[upBound: lowBound, leftBound: rightBound].flatten()
-    elif high_res_bl == 2:
-        avgArrCenter = encodeAvgTwos(img[upBound: lowBound, leftBound: rightBound])
-    elif low_res_bl % 2 != 0:
-        avgArrCenter = encodeAvgOddBlock(img[upBound: lowBound, leftBound: rightBound], high_res_bl_w, high_res_bl_h)
-    else:
-        avgArrCenter = encodeAvgEvenBlock(img[upBound: lowBound, leftBound: rightBound], high_res_bl_w, high_res_bl_h)
+        avgArrCenter = encodeHalf(img[upBound: lowBound, leftBound: rightBound])
 
     avgArr = np.zeros(1, np.uint8)
     avgArr = np.delete(avgArr, 0)
@@ -55,8 +24,8 @@ def encodeAverage(img, low_res_bl, high_res_bl, ratio):
     return avgArr, avgArrLeft.size, avgArrRight.size, avgArrTop.size, avgArrBottom.size
 
 
-def decodeAverage(avgArr, avgArrLeftSize, avgArrRightSize, avgArrTopSize, avgArrBottomSize, low_res_bl, high_res_bl,
-                  ratio, rows, cols):
+def decodeAverage(avgArr, avgArrLeftSize, avgArrRightSize, avgArrTopSize, avgArrBottomSize, rows, cols, leftBound,
+                  rightBound, upBound, lowBound, hQ):
     img = np.zeros(rows * cols, np.uint8)
     img = np.reshape(img, (rows, -1))
     avgArrLeft = np.zeros(avgArrLeftSize, np.uint8)
@@ -82,80 +51,38 @@ def decodeAverage(avgArr, avgArrLeftSize, avgArrRightSize, avgArrTopSize, avgArr
         else:
             avgArrCenter[cI] = avgArr[i]
             cI += 1
-    leftBound = (cols / ratio).__int__()
-    rightBound = (cols - cols / ratio).__int__()
-    upBound = (rows / ratio).__int__()
-    lowBound = (rows - rows / ratio).__int__()
 
-    low_res_bl_w = math.ceil(low_res_bl / 2)
-    high_res_bl_w = math.ceil(high_res_bl / 2)
-    low_res_bl_h = low_res_bl_w if low_res_bl % 2 == 0 else low_res_bl_w + 1
-    high_res_bl_h = high_res_bl_w if high_res_bl % 2 == 0 else high_res_bl_w + 1
+    arrLeft = decodeThird(avgArrLeft, rows, leftBound)
+    arrRight = decodeThird(avgArrRight, rows, (cols - rightBound))
+    arrTop = decodeThird(avgArrTop, upBound, (rightBound - leftBound))
+    arrBottom = decodeThird(avgArrBottom, (rows - lowBound), (rightBound - leftBound))
 
-    while leftBound % low_res_bl_w != 0:
-        leftBound -= 1
-    while rightBound % low_res_bl_w != 0:
-        rightBound -= 1
-    while upBound % low_res_bl_h != 0:
-        upBound -= 1
-    while lowBound % low_res_bl_h != 0:
-        lowBound -= 1
-
-    arrLeft = np.zeros((rows * leftBound), np.uint8)
-    arrLeft = np.reshape(arrLeft, (rows, -1))
-    arrRight = np.zeros((rows * (cols - rightBound)), np.uint8)
-    arrRight = np.reshape(arrRight, (rows, -1))
-
-    arrTop = np.zeros((upBound * (rightBound - leftBound)), np.uint8)
-    arrTop = np.reshape(arrTop, (upBound, -1))
-
-    arrBottom = np.zeros(((rows - lowBound) * (rightBound - leftBound)), np.uint8)
-    arrBottom = np.reshape(arrBottom, ((rows - lowBound), -1))
-
-    arrCenter = np.zeros((lowBound - upBound) * (rightBound - leftBound), np.uint8)
-    if high_res_bl > 2:
+    if hQ:
+        k = 0
+        arrCenter = np.zeros((lowBound - upBound) * (rightBound - leftBound), np.uint8)
         arrCenter = np.reshape(arrCenter, ((lowBound - upBound), -1))
-
-    if low_res_bl % 2 != 0:
-        decodeAvgOddBlock(arrLeft, avgArrLeft, low_res_bl_w, low_res_bl_h)
-        decodeAvgOddBlock(arrRight, avgArrRight, low_res_bl_w, low_res_bl_h)
-        decodeAvgOddBlock(arrTop, avgArrTop, low_res_bl_w, low_res_bl_h)
-        decodeAvgOddBlock(arrBottom, avgArrBottom, low_res_bl_w, low_res_bl_h)
+        for i in range((lowBound - upBound)):
+            for j in range((rightBound - leftBound)):
+                if k == avgArrCenter.size:
+                    break
+                arrCenter[i, j] = avgArrCenter[k]
+                k += 1
     else:
-        decodeAvgEvenBlock(arrLeft, avgArrLeft, low_res_bl_w, low_res_bl_h)
-        decodeAvgEvenBlock(arrRight, avgArrRight, low_res_bl_w, low_res_bl_h)
-        decodeAvgEvenBlock(arrTop, avgArrTop, low_res_bl_w, low_res_bl_h)
-        decodeAvgEvenBlock(arrBottom, avgArrBottom, low_res_bl_w, low_res_bl_h)
+        arrCenter = decodeHalf(avgArrCenter, (lowBound - upBound), (rightBound - leftBound))
 
-    if high_res_bl == 1:
-        for i in range(avgArrCenter.size):
-            arrCenter[i] = avgArrCenter[i]
-        arrCenter = np.reshape(arrCenter, ((lowBound - upBound), (rightBound - leftBound)))
-    elif high_res_bl == 2:
-        centerRows, centerCols = lowBound - upBound, rightBound - leftBound
-        arrCenter = decodeAvgTwos(avgArrCenter, centerRows, centerCols)
-    elif low_res_bl % 2 != 0:
-        decodeAvgOddBlock(arrCenter, avgArrCenter, high_res_bl_w, high_res_bl_h)
-    else:
-        decodeAvgEvenBlock(arrCenter, avgArrCenter, high_res_bl_w, high_res_bl_h)
-
-    arrRight = cv2.GaussianBlur(arrRight, (3, 3), 0)
-    arrLeft = cv2.GaussianBlur(arrLeft, (3, 3), 0)
-    arrBottom = cv2.GaussianBlur(arrBottom, (3, 3), 0)
-    arrTop = cv2.GaussianBlur(arrTop, (3, 3), 0)
     for i in range(rows):
         for j in range(leftBound):
             img[i, j] = arrLeft[i, j]
 
     for i in range(rows):
-        for j in range(leftBound):
+        for j in range((cols - rightBound)):
             img[i, j + rightBound] = arrRight[i, j]
 
     for i in range(upBound):
         for j in range(rightBound - leftBound):
             img[i, j + leftBound] = arrTop[i, j]
 
-    for i in range(upBound):
+    for i in range((rows - lowBound)):
         for j in range(rightBound - leftBound):
             img[i + lowBound, j + leftBound] = arrBottom[i, j]
 
