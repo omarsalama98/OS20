@@ -1,8 +1,19 @@
+import cv2
 import numpy as np
 
 
 def encodeAverage(img, leftBound, rightBound, upBound, lowBound, hQ):
     rows, cols = img.shape
+
+    # avgArrLeft = encodeAvgOddBlock(img[0: rows, 0: leftBound], 2, 3)
+    # avgArrRight = encodeAvgOddBlock(img[0: rows, rightBound: cols], 2, 3)
+    # avgArrTop = encodeAvgOddBlock(img[0: upBound, leftBound: rightBound], 2, 3)
+    # avgArrBottom = encodeAvgOddBlock(img[lowBound: rows, leftBound: rightBound], 2, 3)
+
+    # avgArrLeft = encodeAvgEvenBlock(img[0: rows, 0: leftBound], 2, 2)
+    # avgArrRight = encodeAvgEvenBlock(img[0: rows, rightBound: cols], 2, 2)
+    # avgArrTop = encodeAvgEvenBlock(img[0: upBound, leftBound: rightBound], 2, 2)
+    # avgArrBottom = encodeAvgEvenBlock(img[lowBound: rows, leftBound: rightBound], 2, 2)
 
     avgArrLeft = encodeToThird(img[0: rows, 0: leftBound])
     avgArrRight = encodeToThird(img[0: rows, rightBound: cols])
@@ -51,6 +62,16 @@ def decodeAverage(avgArr, avgArrLeftSize, avgArrRightSize, avgArrTopSize, avgArr
         else:
             avgArrCenter[cI] = avgArr[i]
             cI += 1
+
+    # arrLeft = decodeAvgOddBlock(avgArrLeft, rows, leftBound, 2, 3)
+    # arrRight = decodeAvgOddBlock(avgArrRight, rows, (cols - rightBound), 2, 3)
+    # arrTop = decodeAvgOddBlock(avgArrTop, upBound, (rightBound - leftBound), 2, 3)
+    # arrBottom = decodeAvgOddBlock(avgArrBottom, (rows - lowBound), (rightBound - leftBound), 2, 3)
+
+    # arrLeft = decodeAvgEvenBlock(avgArrLeft, rows, leftBound, 2, 2)
+    # arrRight = decodeAvgEvenBlock(avgArrRight, rows, (cols - rightBound), 2, 2)
+    # arrTop = decodeAvgEvenBlock(avgArrTop, upBound, (rightBound - leftBound), 2, 2)
+    # arrBottom = decodeAvgEvenBlock(avgArrBottom, (rows - lowBound), (rightBound - leftBound), 2, 2)
 
     arrLeft = decodeThird(avgArrLeft, rows, leftBound)
     arrRight = decodeThird(avgArrRight, rows, (cols - rightBound))
@@ -225,15 +246,18 @@ def encodeAvgEvenBlock(img, bl_w, bl_h):
     return myArr
 
 
-def decodeAvgEvenBlock(img, myArr, bl_w, bl_h):
-    rows, cols = img.shape
+def decodeAvgEvenBlock(myArr, rows, cols, bl_w, bl_h):
+    zerosImage = np.zeros((rows * cols), dtype=np.uint8)
+    zerosImage = np.reshape(zerosImage, (rows, -1))
     index = 0
     for row in np.arange(rows - bl_h + 1, step=bl_h):
         for col in np.arange(cols - bl_w + 1, step=bl_w):
             if index == myArr.size:
                 break
-            img[row:row + bl_h, col:col + bl_w] = myArr[index]
+            zerosImage[row:row + bl_h, col:col + bl_w] = myArr[index]
             index += 1
+    zerosImage = cv2.GaussianBlur(zerosImage, (3, 3), 0)
+    return zerosImage
 
 
 def calcAvgOddBlock(block, bl_w, bl_h):
@@ -264,8 +288,9 @@ def encodeAvgOddBlock(img, bl_w, bl_h):
     return myArr
 
 
-def decodeAvgOddBlock(img, myArr, bl_w, bl_h):
-    rows, cols = img.shape
+def decodeAvgOddBlock(myArr, rows, cols, bl_w, bl_h):
+    zerosImage = np.zeros((rows * cols), dtype=np.uint8)
+    zerosImage = np.reshape(zerosImage, (rows, -1))
     index = 0
     for row in np.arange(rows - bl_h + 1, step=bl_h):
         for col in np.arange(cols - bl_w + 1, step=bl_w):
@@ -274,10 +299,12 @@ def decodeAvgOddBlock(img, myArr, bl_w, bl_h):
             for p in range(bl_h):
                 for k in range(bl_w):
                     if p + k < bl_w:
-                        img[row + p, col + k] = myArr[index]
+                        zerosImage[row + p, col + k] = myArr[index]
                     else:
-                        img[row + p, col + k] = myArr[index + 1]
+                        zerosImage[row + p, col + k] = myArr[index + 1]
             index += 2
+    zerosImage = cv2.GaussianBlur(zerosImage, (3, 3), 0)
+    return zerosImage
 
 
 def encodeToThird(img):

@@ -4,7 +4,7 @@ def preProcess(arr, quality):
         for i in range(arr.size):
             diff = arr[i] % 5
             arr[i] = arr[i] - diff if 0 < arr[i] % 10 <= 5 else arr[i] + 5 - diff
-    else:
+    elif quality == 3:
         for i in range(arr.size):
             if arr[i] == 0:
                 arr[i] += 3
@@ -16,3 +16,17 @@ def preProcess(arr, quality):
                 arr[i] += 1
             elif arr[i] % 10 == 1:
                 arr[i] += 2
+    elif quality == 4:
+        for i in range(arr.size):
+            if arr[i] == 255:
+                arr[i] -= 2
+            elif arr[i] % 3 == 1:
+                arr[i] -= 1
+            elif arr[i] % 3 == 2:
+                arr[i] += 1
+    else:
+        for i in range(arr.size):
+            if arr[i] == 255:
+                arr[i] -= 1
+            elif arr[i] % 2 != 0:
+                arr[i] += 1

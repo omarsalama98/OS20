@@ -20,7 +20,7 @@ print(rows * cols)
 avgArr, lSize, rSize, tSize, bSize = encodeAverage(image, bestStartX, bestEndX, bestStartY, bestEndY, 1)
 
 # Quantifying the values into three values each 10 integers.
-preProcess(avgArr, 3)
+preProcess(avgArr, 4)
 print(avgArr.size)
 
 # Applying Huffman
